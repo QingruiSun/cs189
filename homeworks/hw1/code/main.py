@@ -17,7 +17,7 @@ def shuffle_help(data, labels):
 
 
 def shuffle():
-    #load data
+    # load data
     mnist_data = sio.loadmat(mnist_data_path)
     mnist_training_data = mnist_data['training_data']
     mnist_training_labels = mnist_data['training_labels']
@@ -27,11 +27,11 @@ def shuffle():
     cifar10_data = sio.loadmat(cifar10_data_path)
     cifar10_training_data = cifar10_data['training_data']
     cifar10_training_labels = cifar10_data['training_labels']
-    #shuffle data
+    # shuffle data
     mnist_training_data, mnist_training_labels = shuffle_help(mnist_training_data, mnist_training_labels)
     spam_training_data, spam_training_labels = shuffle_help(spam_training_data, spam_training_labels)
     cifar10_training_data, cifar10_training_labels = shuffle_help(cifar10_training_data, cifar10_training_labels)
-    #partition data
+    # partition data
     mnist_validate_data, mnist_validate_labels = mnist_training_data[:10000], mnist_training_labels[:10000]
     mnist_training_data, mnist_training_labels = mnist_training_data[10000:], mnist_training_labels[10000:]
     spam_num = spam_training_data.shape[0]
@@ -134,8 +134,37 @@ def hyperparameter_tunning(training_data, training_labels, validate_data, valida
         accuracy_list.append(validate_accuracy)
     plt.plot(hyperparameters, accuracy_list)
     plt.show()
+    max_accuracy = max(accuracy_list)
+    max_accuracy_index = accuracy_list.index(max_accuracy)
+    return hyperparameters[max_accuracy_index]
 
 
+def k_fold_validation(data, labels, k=5):
+    print(type(data))
+    print(data.shape)
+    hyperparameters = [1e-7, 2.5e-7, 5e-7, 8e-7, 1e-6, 2e-6, 5e-6, 8e-6, 1e-5]
+    partition_size = data.shape[0] // k
+    split_data = [data[i * partition_size : (i + 1) * partition_size] for i in range(k)]
+    split_labels = [labels[i * partition_size : (i + 1) * partition_size] for i in range(k)]
+    accuracy_list = [0.0 for i in range(len(hyperparameters))]
+    for i in range(k):
+        print("fold \n" + str(i))
+        validate_data = split_data[i]
+        validate_labels = split_labels[i]
+        train_data = np.zeros((0, data.shape[1]))
+        train_labels = np.zeros((0, labels.shape[1]))
+        for j in range(k):
+            if j != i:
+                train_data = np.concatenate([train_data, split_data[j]])
+                train_labels = np.concatenate([train_labels, split_labels[j]])
+        for l in range(len(hyperparameters)):
+            clf = train_svm(train_data, train_labels, 'linear', hyperparameters[l])
+            accuracy_list[l] += calculate_accuracy(clf, validate_data, validate_labels)
+    accuracy_list = [accuracy / k for accuracy in accuracy_list]
+    plt.plot(hyperparameters, accuracy_list)
+    plt.show()
+    max_accuracy = max(accuracy_list)
+    return hyperparameters[accuracy_list.index(max_accuracy)]
 
 
 
@@ -144,6 +173,7 @@ if __name__ == "__main__":
     shuffle()
     data_list = shuffle()
     # train_mnist(data_list)
-    hyperparameter_tunning(data_list[2][:10000], data_list[3][:10000], data_list[0], data_list[1])
+    #hyperparameter_tunning(data_list[2][:10000], data_list[3][:10000], data_list[0], data_list[1])
+    k_fold_validation(data_list[2][:10000], data_list[3][:10000])
 
 
