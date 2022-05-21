@@ -45,11 +45,16 @@ def shuffle():
     return data_list
 
 
-def train_svm(data, labels, num_list, kernel='linear', C=1.0):
+def train_svm(data, labels, kernel='linear', C=1.0):
+    clf = SVC(max_iter=1000000, kernel=kernel, C=C)
+    clf.fit(data, np.ravel(labels))
+    return clf
+
+
+def train_svm_list(data, labels, num_list, kernel='linear', C=1.0):
     clf_list = []
     for num in num_list:
-        clf = SVC(max_iter=1000000, kernel=kernel, C=C)
-        clf.fit(data[:num], np.ravel(labels[:num]))
+        clf = train_svm(data[:num], labels[:num])
         clf_list.append(clf)
     return clf_list
 
@@ -61,7 +66,7 @@ def calculate_accuracy(clf, data, labels):
 
 def train_mnist(data_list):
     num_list = [100, 200, 500, 1000, 2000, 5000, 10000]
-    clf_list = train_svm(data_list[2], data_list[3], num_list)
+    clf_list = train_svm_list(data_list[2], data_list[3], num_list)
     train_accuracy_list = []
     validate_accuracy_list = []
     for i in range(len(num_list)):
@@ -80,7 +85,7 @@ def train_mnist(data_list):
 
 def train_spam(data_list):
     num_list = [100, 200, 500, 1000, 2000, data_list[6].shaep[0]]
-    clf_list = train_svm(data_list[6], data_list[7], num_list)
+    clf_list = train_svm_list(data_list[6], data_list[7], num_list)
     train_accuracy_list = []
     validate_accuracy_list = []
     for i in range(len(num_list)):
@@ -99,7 +104,7 @@ def train_spam(data_list):
 
 def train_cifar10(data_list):
     num_list = [100, 200, 500, 1000, 2000, 5000]
-    clf_list = train_svm(data_list[10], data_list[11], num_list)
+    clf_list = train_svm_list(data_list[10], data_list[11], num_list)
     train_accuracy_list = []
     validate_accuracy_list = []
     for i in range(len(num_list)):
@@ -116,9 +121,29 @@ def train_cifar10(data_list):
     plt.show()
 
 
+def hyperparameter_tunning(training_data, training_labels, validate_data, validate_labels):
+    hyperparameters = [1e-7, 2.5e-7, 5e-7, 8e-7, 1e-6, 2e-6, 5e-6, 8e-6, 1e-5]
+    clf_list = []
+    for hyperparameter in  hyperparameters:
+        clf = train_svm(training_data, training_labels, 'linear', hyperparameter)
+        clf_list.append(clf)
+        print("finished train model with hyperparameter " + str(hyperparameter))
+    accuracy_list = []
+    for clf in clf_list:
+        validate_accuracy = calculate_accuracy(clf, validate_data, validate_labels)
+        accuracy_list.append(validate_accuracy)
+    plt.plot(hyperparameters, accuracy_list)
+    plt.show()
+
+
+
+
+
 
 if __name__ == "__main__":
     shuffle()
     data_list = shuffle()
-    train_mnist(data_list)
+    # train_mnist(data_list)
+    hyperparameter_tunning(data_list[2][:10000], data_list[3][:10000], data_list[0], data_list[1])
+
 
